@@ -34,7 +34,7 @@ def main():
     g_gan_loss = tf.reduce_mean(tf.squared_difference(fake_y_disc, REAL_LABEL))
     f_gan_loss = tf.reduce_mean(tf.squared_difference(fake_x_disc, REAL_LABEL))
 
-    color_regularize_loss = tf.reduce_mean(tf.abs(fake_y - x)) + tf.reduce_mean(tf.abs(fake_x - y))
+    color_regularize_loss = (tf.reduce_mean(tf.abs(fake_y - x)) + tf.reduce_mean(tf.abs(fake_x - y))) * 5
 
     cycle_consistent_loss = (tf.reduce_mean(tf.abs(rect_x - x)) + tf.reduce_mean(tf.abs(rect_y - y)))
 
@@ -42,6 +42,11 @@ def main():
     f_loss = cycle_consistent_loss * 20 + f_gan_loss + color_regularize_loss
 
     # summary
+
+    tf.summary.histogram("Dx/real", x_disc)
+    tf.summary.histogram("Dx/fake", fake_x_disc)
+    tf.summary.histogram("Dy/real", y_disc)
+    tf.summary.histogram("Dy/fake", fake_y_disc)
 
     with tf.name_scope("loss"):
         tf.summary.scalar("cycle_consistent", cycle_consistent_loss)
@@ -61,10 +66,12 @@ def main():
         tf.summary.image("fake_x", _restore_image(fake_x))
         tf.summary.image("reconstruction_y", _restore_image(rect_y))
 
+    learning_rate = tf.nn.relu(LEARNING_RATE - tf.nn.relu((1 / 100000) * global_step - 100000) * LEARNING_RATE)
+    tf.summary.scalar("LR", learning_rate)
+
     summary = tf.summary.merge_all()
 
     # optimizers
-    learning_rate = LEARNING_RATE  # - (1 / 100000) * global_step
     optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
     g_optimizer = optimizer.minimize(g_loss, var_list=tf.trainable_variables(scope="G"), global_step=global_step)
     f_optimizer = optimizer.minimize(f_loss, var_list=tf.trainable_variables(scope="F"))
@@ -74,8 +81,8 @@ def main():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(var_list=tf.trainable_variables(), max_to_keep=10)
-        x_dataset = Dataset("datasets/noisy")
-        y_dataset = Dataset("datasets/clear")
+        x_dataset = Dataset("datasets/htc")
+        y_dataset = Dataset("datasets/ffd")
         train_writer = tf.summary.FileWriter(logdir="logs")
         while True:
             _, _, _, _, train_summary, step = sess.run(

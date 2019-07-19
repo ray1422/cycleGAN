@@ -1,3 +1,5 @@
+import random
+
 import cv2
 import numpy as np
 import glob
@@ -17,12 +19,24 @@ class Dataset:
 
     def next(self, batch_size=1):
         batch = []
-        for i in range(batch_size):
-            img = cv2.imread(self.filenames[self.idx])
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            batch.append(img)
-            self.idx += 1
-            self.idx %= len(self.filenames)
+        i = 0
+        while i < batch_size:
+            try:
+                img = cv2.imread(self.filenames[self.idx])
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                batch.append(img)
+                i += 1
+            except Exception as e:
+                print(e)
+                print("error while reading", self.filenames[self.idx])
+            finally:
+                self.idx += 1
+                if self.idx >= len(self.filenames) - 1:
+                    self.shuffle()
+                    self.idx = 0
 
         return np.asarray(batch)
 
+    def shuffle(self):
+        random.shuffle(self.filenames)
+        return self
