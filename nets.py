@@ -3,7 +3,7 @@ import keras.layers as layers
 
 
 def generator(x, scope):
-    with tf.variable_scope(name_or_scope=scope):
+    with tf.variable_scope(name_or_scope=scope, reuse=tf.AUTO_REUSE):
         x = layers.Conv2D(kernel_size=5, filters=64, activation=tf.nn.leaky_relu, padding='SAME')(x)
         x = layers.Conv2D(kernel_size=3, filters=128, strides=2, activation=tf.nn.leaky_relu, padding='SAME')(x)
         x = layers.Conv2D(kernel_size=3, filters=256, strides=2, activation=tf.nn.leaky_relu, padding='SAME')(x)
@@ -21,7 +21,7 @@ def generator(x, scope):
 
 
 def discriminator(x, scope):
-    with tf.variable_scope(name_or_scope=scope):
+    with tf.variable_scope(name_or_scope=scope, reuse=tf.AUTO_REUSE):
         x = layers.Conv2D(kernel_size=4, filters=32, strides=2, activation=tf.nn.leaky_relu)(x)
 
         x = layers.Conv2D(kernel_size=4, filters=64, strides=2, activation=None)(x)

@@ -34,7 +34,7 @@ def main():
     g_gan_loss = tf.reduce_mean(tf.squared_difference(fake_y_disc, REAL_LABEL))
     f_gan_loss = tf.reduce_mean(tf.squared_difference(fake_x_disc, REAL_LABEL))
 
-    color_regularize_loss = (tf.reduce_mean(tf.abs(fake_y - x)) + tf.reduce_mean(tf.abs(fake_x - y))) * 5
+    color_regularize_loss = (tf.reduce_mean(tf.abs(fake_y - x)) + tf.reduce_mean(tf.abs(fake_x - y))) * 2
 
     cycle_consistent_loss = (tf.reduce_mean(tf.abs(rect_x - x)) + tf.reduce_mean(tf.abs(rect_y - y)))
 
@@ -80,10 +80,14 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver(var_list=tf.trainable_variables(), max_to_keep=10)
-        x_dataset = Dataset("datasets/htc")
-        y_dataset = Dataset("datasets/ffd")
-        train_writer = tf.summary.FileWriter(logdir="logs")
+        saver = tf.train.Saver(var_list=tf.trainable_variables().append(global_step), max_to_keep=10)
+        ckpt = tf.train.latest_checkpoint("checkpoints")
+        if ckpt:
+            saver.restore(sess, ckpt)
+            print("ckpt loaded!!", ckpt)
+        x_dataset = Dataset("datasets/noisy")
+        y_dataset = Dataset("datasets/clear")
+        train_writer = tf.summary.FileWriter(logdir="logs", graph=sess.graph)
         while True:
             _, _, _, _, train_summary, step = sess.run(
                 [g_optimizer, f_optimizer, d_x_optimizer, d_y_optimizer, summary, global_step], feed_dict={
@@ -102,7 +106,7 @@ def main():
 
 
 def _restore_image(x):
-    return (x + 1) * 127.5
+    return tf.cast(tf.clip_by_value((x + 1) * 127.5, 0, 255), dtype=tf.uint8)
 
 
 if __name__ == '__main__':
